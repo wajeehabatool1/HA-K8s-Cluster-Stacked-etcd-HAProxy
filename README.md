@@ -196,6 +196,55 @@ This script :
 
 
    ```
+#### 2. Initialize the First Control plane
+- Use the following command to initialize kubeadm on anyone of the control plane node
+ ```bash
+sudo kubeadm init --control-plane-endpoint "<LOADBALANCER_PRIVATE_IP>:6443" --upload-certs --pod-network-cidr 192.168.0.0/16
+ ```
+- After successful control plane initialization , we will get output :
+![image](https://github.com/user-attachments/assets/1e735fc0-9ee0-4ed7-848b-d3dd576bdddd)
+
+  
+- Before adding more control planes and workers to cluser , configure user enviroment to interact with k8 cluster
+   ```bash
+  mkdir -p "$HOME"/.kube
+  sudo cp -i /etc/kubernetes/admin.conf "$HOME"/.kube/config
+  sudo chown "$(id -u)":"$(id -g)" "$HOME"/.kube/config
+   ```
+- Install Claico Network Plugin Network
+   ```bash
+   kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+   ```
+#### 3. Add More Controlplane Nodes to CLuster
+- Execute this particular command provided by first control plane on other nodes to join the cluster
+  ![image](https://github.com/user-attachments/assets/707fa3d9-7387-4f03-a689-8da36b766e4d)
+- again configure user enviroment to interact with k8 cluster
+  ```bash
+  mkdir -p "$HOME"/.kube
+  sudo cp -i /etc/kubernetes/admin.conf "$HOME"/.kube/config
+  sudo chown "$(id -u)":"$(id -g)" "$HOME"/.kube/config
+   ```
+#### 4. Add Worker node to CLuster
+- Execute this particular command provided by first control plane on other nodes to join the cluster
+  ![image](https://github.com/user-attachments/assets/c81abe8a-45c3-4fba-bc57-906a62af95c0)
+
+- again configure user enviroment to interact with k8 cluster
+  ```bash
+  mkdir -p "$HOME"/.kube
+  sudo cp -i /etc/kubernetes/admin.conf "$HOME"/.kube/config
+  sudo chown "$(id -u)":"$(id -g)" "$HOME"/.kube/config
+   ```
+### 5. Verify Cluster Status 
+- To see all nodes, execute this command in any of the  :
+   ```bash
+   kubectl get nodes
+   ```
+- if all control planes and workers are in ready state, it means  cluster is up and running.
+  ![image](https://github.com/user-attachments/assets/58d56ddf-775b-4cdb-9c6f-21a503edb620)
+### Testing HA Cluster
+- Test the cluster by stopping any number of control plane , you will observer cluster is running smoothly even when a number of control planes are down ** Remember to follow quorom while testing it, beacuse if running control planes are less than the number desired to maintain High Availibilty, the whole cluster will go down
+
+ 
 
 
 
