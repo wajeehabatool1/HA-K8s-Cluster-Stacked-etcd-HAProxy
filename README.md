@@ -77,7 +77,7 @@ Make sure to open the following ports:
 #### 1. Kubernetes Cluster Setup Script
 This script is a common setup for all servers (Control Plane and Worker Nodes) in a Kubernetes cluster. It configures the system by disabling swap, loading necessary kernel modules, applying sysctl parameters, and installing the required dependencies, including CRI-O as the container runtime and Kubernetes components (kubelet, kubectl, kubeadm).
 
-- Elevate the user privillages:
+- Make sure to elevate the user privillages:
 ```bash
 sudo -i
 ```
@@ -85,8 +85,9 @@ sudo -i
  ```bash
 vi script.sh
 ```
-This script :
-- Setsup Environment & Variables:
+
+- This script sets variables to ensure Kubernetes (v1.30) and CRI-O (v1.30) versions match for compatibility during installation. It disables  swap (swapoff -a) to ensure 
+  Kubernetes functions correctly, as it requires memory management without swap.
   
   ```bash
    set -euxo pipefail
@@ -103,7 +104,8 @@ This script :
   (crontab -l 2>/dev/null; echo "@reboot /sbin/swapoff -a") | crontab - || true
 
    ```
--  Module Loading for Kubernetes:
+-  These instructions create the k8s.conf file to load the overlay and br_netfilter modules at boot. The overlay module allows containers to use a virtual network, while 
+   br_netfilter enables proper communication between containers through network filtering.
     ```bash
     # Create the .conf file to load the modules at bootup
     cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
@@ -115,26 +117,26 @@ This script :
    sudo modprobe br_netfilter
 
     ```
--  Configure Sysctl Parameters
+-  This code sets sysctl parameters for Kubernetes networking, enabling IP forwarding and configuring bridge networks to use iptables.
    ```bash
-   # Sysctl params required by setup, params persist across reboots
+   
    cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
    net.bridge.bridge-nf-call-iptables  = 1
    net.bridge.bridge-nf-call-ip6tables = 1
    net.ipv4.ip_forward                 = 1
    EOF
 
-   # Apply sysctl params without reboot
+   
    sudo sysctl --system
 
    ```
--  Update and Install Prerequisites
+-  This command updates the package list and installs necessary tools (apt-transport-https, ca-certificates, curl, gpg).
    ```bash
    sudo apt-get update -y
    sudo apt-get install -y apt-transport-https ca-certificates curl gpg
 
    ```
--  Install CRI-O Runtime
+-  These instructions Install CRI-O Runtime and make sure it starts automatically at boot.
    ```bash
     # Install CRI-O Runtime
     sudo apt-get update -y
@@ -162,7 +164,7 @@ This script :
    echo "CRI runtime installed successfully"
 
    ```
-- Install Kubernetes Components
+- These instructions Install Kubernetes Components
   ```bash
    # Install kubelet, kubectl, and kubeadm
    curl -fsSL https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/deb/Release.key |
@@ -182,7 +184,7 @@ This script :
    sudo apt-mark hold kubelet kubeadm kubectl
 
   ```
-- Retrieve Local IP for Kubelet Configuration
+- These instruction Retrieve Local IP and add it to kubelet configuration for kubelet to know which ip to use when talking to API server.
    ```bash
     # Install jq, a command-line JSON processor
     sudo apt-get install -y jq
@@ -211,7 +213,7 @@ sudo kubeadm init --control-plane-endpoint "<LOADBALANCER_PRIVATE_IP>:6443" --up
   sudo cp -i /etc/kubernetes/admin.conf "$HOME"/.kube/config
   sudo chown "$(id -u)":"$(id -g)" "$HOME"/.kube/config
    ```
-- Install Claico Network Plugin Network
+- Install Calico Network Plugin Network
    ```bash
    kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
    ```
@@ -226,6 +228,7 @@ sudo kubeadm init --control-plane-endpoint "<LOADBALANCER_PRIVATE_IP>:6443" --up
    ```
 #### 4. Add Worker node to CLuster
 - Execute this particular command provided by first control plane on other nodes to join the cluster
+  
   ![image](https://github.com/user-attachments/assets/c81abe8a-45c3-4fba-bc57-906a62af95c0)
 
 - again configure user enviroment to interact with k8 cluster
@@ -240,6 +243,7 @@ sudo kubeadm init --control-plane-endpoint "<LOADBALANCER_PRIVATE_IP>:6443" --up
    kubectl get nodes
    ```
 - if all control planes and workers are in ready state, it means  cluster is up and running.
+  
   ![image](https://github.com/user-attachments/assets/58d56ddf-775b-4cdb-9c6f-21a503edb620)
 ### Testing HA Cluster
 - Test the cluster by stopping any number of control plane , you will observer cluster is running smoothly even when a number of control planes are down ** Remember to follow quorom while testing it, beacuse if running control planes are less than the number desired to maintain High Availibilty, the whole cluster will go down
